@@ -1,8 +1,13 @@
 import express from "express";
 import fetch from "node-fetch";
-
+import cors from "cors"; // 
 const app = express();
 const PORT = process.env.PORT || 10000;
+
+// Enable CORS for all origins 
+app.use(cors({
+    origin: "https://malex1234.github.io"
+}));
 
 app.get("/steam-market", async (req, res) => {
     const itemName = req.query.item;
@@ -19,12 +24,9 @@ app.get("/steam-market", async (req, res) => {
             return res.status(500).json({ success: false, error: "Failed to fetch from Steam API" });
         }
 
-        // ✅ Extract lowest price if it exists
-        const lowestPrice = data.lowest_price || "N/A";
-
         res.json({
             success: true,
-            lowest_price: lowestPrice, 
+            lowest_price: data.lowest_price || "N/A",
             median_price: data.median_price || "N/A",
             volume: data.volume || "N/A",
         });
