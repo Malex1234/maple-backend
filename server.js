@@ -1,9 +1,9 @@
-const express = require("express");
-const cors = require("cors");
-const fetch = require("node-fetch");
+import express from "express";
+import cors from "cors";
+import fetch from "node-fetch";  // If error occurs, try using: import("node-fetch").then(mod => mod.default);
 
 const app = express();
-app.use(cors()); // Allow all origins
+app.use(cors()); // Enable CORS
 
 const PORT = process.env.PORT || 3000;
 
@@ -17,9 +17,13 @@ app.get("/steam-market", async (req, res) => {
 
     try {
         const response = await fetch(steamMarketURL);
+        if (!response.ok) {
+            throw new Error(`Steam API error: ${response.statusText}`);
+        }
         const data = await response.json();
         res.json(data);
     } catch (error) {
+        console.error("Error fetching Steam Market data:", error);
         res.status(500).json({ error: "Failed to fetch Steam Market data" });
     }
 });
