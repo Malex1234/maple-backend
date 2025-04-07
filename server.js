@@ -13,38 +13,6 @@ app.use(cors({
     origin: "https://malex1234.github.io"
 }));
 
-// Function to get the highest buy order using Puppeteer
-const getHighestBuyOrder = async (itemName) => {
-    let browser;
-    try {
-        // Launch Puppeteer with custom Chromium binary
-        browser = await puppeteer.launch({
-            executablePath: await chromium.executablePath,
-            args: chromium.args,
-            headless: chromium.headless,
-        });
-        
-        const page = await browser.newPage();
-        const url = `https://steamcommunity.com/market/listings/730/${encodeURIComponent(itemName)}`;
-        await page.goto(url, { waitUntil: 'domcontentloaded' });
-        
-        // Scrape highest buy order from the page
-        const highestBuyOrder = await page.evaluate(() => {
-            const buyOrderElement = document.querySelector('.market_commodity_orders_header_promote');
-            return buyOrderElement ? buyOrderElement.textContent.trim() : 'Not found';
-        });
-        
-        return highestBuyOrder;
-    } catch (error) {
-        console.error("Error in Puppeteer scraping:", error);
-        return 'Not found';
-    } finally {
-        if (browser) {
-            await browser.close();
-        }
-    }
-};
-
 app.get("/steam-market", async (req, res) => {
     const itemName = req.query.item;
     if (!itemName) {
@@ -52,29 +20,46 @@ app.get("/steam-market", async (req, res) => {
     }
 
     try {
-        // Fetch price data from Steam
+        // Launch Puppeteer
+        const browser = await puppeteer.launch({
+            headless: true,  // Run in headless mode (no GUI)
+            args: ['--no-sandbox', '--disable-setuid-sandbox']  // Recommended for some environments
+        });
+        
+        const page = await browser.newPage();
+
+        // Open the URL for the item (replace with the actual item URL)
+        const marketURL = `https://steamcommunity.com/market/listings/730/${encodeURIComponent(itemName)}`;
+        await page.goto(marketURL, { waitUntil: 'networkidle2' });
+
+        // Wait for the page to load the content
+        await page.waitForSelector('.market_commodity_buyrequests');
+
+        // Extract the highest buy order value from the page
+        const highestBuyOrder = await page.$eval(
+            '.market_commodity_buyrequests .market_commodity_orders_header_promote', 
+            span => span.textContent.trim()
+        );
+
+        // Extract additional data (e.g., lowest price, median, etc.) from Steam API
         const steamAPIURL = `https://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=${encodeURIComponent(itemName)}`;
         const steamResponse = await fetch(steamAPIURL);
         const steamData = await steamResponse.json();
 
-        if (!steamData.success) {
-            return res.status(500).json({ success: false, error: "Failed to fetch from Steam API" });
-        }
+        await browser.close();
 
-        // Get the highest buy order using Puppeteer
-        const highestBuyOrder = await getHighestBuyOrder(itemName);
-
+        // Return the extracted data
         res.json({
             success: true,
             lowest_price: steamData.lowest_price || "N/A",  // data includes lowest listed price
             median_price: steamData.median_price || "N/A",  // data includes median
             volume: steamData.volume || "N/A",  // data includes volume sold last 24hr
-            highestBuyOrder: highestBuyOrder, // Highest buy order
+            highestBuyOrder: highestBuyOrder || "Not found", // If not found, return "Not found"
         });
 
     } catch (error) {
-        console.error("Server Error:", error);
-        res.status(500).json({ success: false, error: "Server error" });
+        console.error("Error scraping with Puppeteer:", error);
+        res.status(500).json({ success: false, error: "Failed to scrape Steam Market" });
     }
 });
 
