@@ -22,9 +22,11 @@ app.get("/steam-market", async (req, res) => {
     try {
         // Launch Puppeteer
         const browser = await puppeteer.launch({
-            headless: true,  // Run in headless mode (no GUI)
-            args: ['--no-sandbox', '--disable-setuid-sandbox']  // Recommended for some environments
-        });
+            headless: chrome.headless,
+            executablePath: await chrome.executablePath,
+            args: chrome.args,
+          });
+          
         
         const page = await browser.newPage();
 
