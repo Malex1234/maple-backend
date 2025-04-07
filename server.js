@@ -40,10 +40,6 @@ app.get("/steam-market", async (req, res) => {
         const highestBuyOrder = buyMatch ? `$${buyMatch[1]}` : "N/A";
 
 
-        const buyOrderText = $('#market_commodity_buyrequests').text();
-        const match = buyOrderText.match(/The highest buy order is \$([\d.]+)/);
-        const highestBuyOrder = match ? `$${match[1]}` : "N/A";
-
         // Respond with everything
         res.json({
             success: true,
