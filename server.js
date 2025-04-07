@@ -25,18 +25,12 @@ app.get("/steam-market", async (req, res) => {
             return res.status(500).json({ success: false, error: "Failed to fetch from Steam API" });
         }
 
-        // Fetch buy orders from SteamMarketAPI
-        const marketAPIKey = "FBUVL3E5FXRVE1B6"; 
-        const marketAPIURL = `https://steammarketapi.com/api/v1/GetItemOrdersHistogram?appid=730&market_hash_name=${encodeURIComponent(itemName)}&currency=1&key=${marketAPIKey}`;
-        const marketResponse = await fetch(marketAPIURL);
-        const marketData = await marketResponse.json();
-
-        const highestBuyOrder = marketData.highest_buy_order || "N/A"; // get highest buy order
+       
 
         res.json({
             success: true,
             lowest_price: steamData.lowest_price || "N/A",  // data includes lowest listed price
-            highest_buy_order: highestBuyOrder, // data includes highest buy order
+
             median_price: steamData.median_price || "N/A",  // data includes median
             volume: steamData.volume || "N/A",  // data includes volume sold last 24hr
         });
