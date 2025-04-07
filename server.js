@@ -17,42 +17,39 @@ app.get("/steam-market", async (req, res) => {
     }
 
     try {
-        // Fetch price data from Steam API
-        const steamAPIURL = `https://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=${encodeURIComponent(itemName)}`;
-        const steamResponse = await fetch(steamAPIURL);
-        const steamData = await steamResponse.json();
-
-        if (!steamData.success) {
-            return res.status(500).json({ success: false, error: "Failed to fetch from Steam API" });
-        }
-
-        // Scrape Steam item page to get highest buy order
-       // Build the market listing URL
+        // Fetch the Steam Market page HTML
         const marketURL = `https://steamcommunity.com/market/listings/730/${encodeURIComponent(itemName)}`;
         const response = await fetch(marketURL);
         const html = await response.text();
         const $ = cheerio.load(html);
 
-        // Grab the buy order summary container text
-        const buySummary = $('#market_commodity_order_summary').text();
-        const buyMatch = buySummary.match(/Buy Orders.*\$\s*([\d.]+)/i);
+        // Look for the lowest sell order price
+        const lowestSellOrderText = $('.market_commodity_orders_header_promote').text();
+        const lowestSellOrder = lowestSellOrderText.trim() || "Not found";
 
-        const highestBuyOrder = buyMatch ? `$${buyMatch[1]}` : "N/A";
+        // Look for the highest buy order price
+        const highestBuyOrderText = $('#market_commodity_buyrequests').text();
+        const buyOrderMatch = highestBuyOrderText.match(/The highest buy order is \$([\d.]+)/);
+        const highestBuyOrder = buyOrderMatch ? `$${buyOrderMatch[1]}` : "Not found";
 
-
-        // Respond with everything
+        // Send the response with both the lowest sell order and highest buy order
         res.json({
             success: true,
-            lowest_price: steamData.lowest_price || "N/A",
-            median_price: steamData.median_price || "N/A",
-            volume: steamData.volume || "N/A",
-            highestBuyOrder: highestBuyOrder
+            lowest_price: steamData.lowest_price || "N/A",  // Steam API includes lowest listed price
+            median_price: steamData.median_price || "N/A",  // Steam API includes median price
+            volume: steamData.volume || "N/A",  // Steam API includes volume sold last 24hr
+            lowest_sell_order: lowestSellOrder,
+            highest_buy_order: highestBuyOrder
         });
-
     } catch (error) {
-        console.error("❌ Server Error:", error);
-        res.status(500).json({ success: false, error: "Server error" });
+        console.error("Scraping failed:", error);
+        res.status(500).json({ error: "Failed to scrape Steam Market" });
     }
+
+} catch (error) {
+    console.error("Server Error:", error);
+    res.status(500).json({ success: false, error: "Server error" });
+}
 });
 
 app.listen(PORT, () => {
