@@ -31,9 +31,9 @@ app.get("/steam-market", async (req, res) => {
             const buyOrderText = $('#market_commodity_buyrequests').text();
             const match = buyOrderText.match(/The highest buy order is \$([\d.]+)/);
     
-            const highestBuyOrder = match ? `$${match[1]}` : "Not found";
+            const highestBuyElement = match ? `$${match[1]}` : "Not found";
     
-            res.json({ highestBuyOrder });
+            res.json({ highestBuyElement });
         } catch (error) {
             console.error("Scraping failed:", error);
             res.status(500).json({ error: "Failed to scrape Steam Market" });
