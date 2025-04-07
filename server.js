@@ -27,10 +27,18 @@ app.get("/steam-market", async (req, res) => {
         }
 
         // Scrape Steam item page to get highest buy order
+       // Build the market listing URL
         const marketURL = `https://steamcommunity.com/market/listings/730/${encodeURIComponent(itemName)}`;
         const response = await fetch(marketURL);
         const html = await response.text();
         const $ = cheerio.load(html);
+
+        // Grab the buy order summary container text
+        const buySummary = $('#market_commodity_order_summary').text();
+        const buyMatch = buySummary.match(/Buy Orders.*\$\s*([\d.]+)/i);
+
+        const highestBuyOrder = buyMatch ? `$${buyMatch[1]}` : "N/A";
+
 
         const buyOrderText = $('#market_commodity_buyrequests').text();
         const match = buyOrderText.match(/The highest buy order is \$([\d.]+)/);
