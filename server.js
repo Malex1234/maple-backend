@@ -31,9 +31,9 @@ app.get("/steam-market", async (req, res) => {
             const buyOrderText = $('#market_commodity_buyrequests').text();
             const match = buyOrderText.match(/The highest buy order is \$([\d.]+)/);
     
-            const highestBuyElement = match ? `$${match[1]}` : "Not found";
+            const highestBuyOrder = match ? `$${match[1]}` : "Not found";
     
-            res.json({ highestBuyElement });
+            res.json({ highestBuyOrder });
         } catch (error) {
             console.error("Scraping failed:", error);
             res.status(500).json({ error: "Failed to scrape Steam Market" });
@@ -48,8 +48,8 @@ app.get("/steam-market", async (req, res) => {
         res.json({
             success: true,
             lowest_price: steamData.lowest_price || "N/A",  // data includes lowest listed price
-
             median_price: steamData.median_price || "N/A",  // data includes median
+            highestBuyOrder: highestBuyOrder //highest buy order
             volume: steamData.volume || "N/A",  // data includes volume sold last 24hr
         });
 
