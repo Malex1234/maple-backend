@@ -7,7 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 10000;
 
 app.use(cors({
-    origin: "https://malex1234.github.io" // 
+    origin: "https://malex1234.github.io"
 }));
 
 app.get("/steam-market", async (req, res) => {
@@ -17,48 +17,40 @@ app.get("/steam-market", async (req, res) => {
     }
 
     try {
-        // Fetch price data from Steam
+        // Fetch price data from Steam API
         const steamAPIURL = `https://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=${encodeURIComponent(itemName)}`;
         const steamResponse = await fetch(steamAPIURL);
         const steamData = await steamResponse.json();
-
-        try {
-            const response = await fetch(marketURL);
-            const html = await response.text();
-            const $ = cheerio.load(html);
-    
-            // Look for the highest buy order box
-            const buyOrderText = $('#market_commodity_buyrequests').text();
-            const match = buyOrderText.match(/The highest buy order is \$([\d.]+)/);
-    
-            const highestBuyOrder = match ? `$${match[1]}` : "Not found";
-    
-            res.json({ highestBuyOrder });
-        } catch (error) {
-            console.error("Scraping failed:", error);
-            res.status(500).json({ error: "Failed to scrape Steam Market" });
-        }
 
         if (!steamData.success) {
             return res.status(500).json({ success: false, error: "Failed to fetch from Steam API" });
         }
 
-       
+        // Scrape Steam item page to get highest buy order
+        const marketURL = `https://steamcommunity.com/market/listings/730/${encodeURIComponent(itemName)}`;
+        const response = await fetch(marketURL);
+        const html = await response.text();
+        const $ = cheerio.load(html);
 
+        const buyOrderText = $('#market_commodity_buyrequests').text();
+        const match = buyOrderText.match(/The highest buy order is \$([\d.]+)/);
+        const highestBuyOrder = match ? `$${match[1]}` : "N/A";
+
+        // Respond with everything
         res.json({
             success: true,
-            lowest_price: steamData.lowest_price || "N/A",  // data includes lowest listed price
-            median_price: steamData.median_price || "N/A",  // data includes median
-            highestBuyOrder: highestBuyOrder //highest buy order
-            volume: steamData.volume || "N/A",  // data includes volume sold last 24hr
+            lowest_price: steamData.lowest_price || "N/A",
+            median_price: steamData.median_price || "N/A",
+            volume: steamData.volume || "N/A",
+            highestBuyOrder: highestBuyOrder
         });
 
     } catch (error) {
-        console.error("Server Error:", error);
+        console.error("❌ Server Error:", error);
         res.status(500).json({ success: false, error: "Server error" });
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`✅ Server running on port ${PORT}`);
 });
